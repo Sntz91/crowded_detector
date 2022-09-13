@@ -1,5 +1,6 @@
 import torch
 import cv2 as cv
+import os
 
 def crowded_detection(input, threshhold):
     """
@@ -49,5 +50,9 @@ def crowded_detection(input, threshhold):
 
 
 if __name__ == "__main__":
-    crowded_detection(cv.VideoCapture(0), 1)
+    if os.environ.get('threshold') is not None:
+        threshold = int(os.environ['threshold'])
+    else:
+        threshold = 1
+    crowded_detection(cv.VideoCapture(0), threshold)
     
