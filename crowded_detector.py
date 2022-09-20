@@ -1,8 +1,10 @@
+import requests
 import torch
 import cv2 as cv
 import os
 
-def crowded_detection(input, threshhold):
+
+def crowded_detection(input, threshhold, api_url, api_port):
     """
     This Function detects people and classifies crowded siituations
     Input: input (Video Capture Objects)
@@ -12,8 +14,13 @@ def crowded_detection(input, threshhold):
     """
 
     model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
-
+    url = 'http://{}:{}/api/WarningIssuer/IssueWarningStatus'.format(api_url,
+                                                                     api_port)
+    print('url: ', url)
+    crowded=False
     while(input.isOpened()):
+        previous_crowded = crowded
+
         ret, frame = input.read()
 
         if ret is False:
@@ -41,6 +48,13 @@ def crowded_detection(input, threshhold):
         else:
             crowded = False
 
+        if previous_crowded != crowded:
+            print('state change!')
+            payload = {'crowded': crowded}
+            r = requests.post(url, data=payload)
+            print('request done: ', r)
+            
+
         k = cv.waitKey(1)
         if k == 27:
             input.release()
@@ -54,5 +68,13 @@ if __name__ == "__main__":
         threshold = int(os.environ['threshold'])
     else:
         threshold = 1
-    crowded_detection(cv.VideoCapture(0), threshold)
+
+    if os.environ.get('API_URL') and os.environ.get('API_PORT') is not None:
+        api_url = os.environ['API_URL']
+        api_port = os.environ['API_PORT']
+    else:
+        api_url = '127.0.0.1'
+        api_port = '5000'
+
+    crowded_detection(cv.VideoCapture(0), threshold, api_url, api_port)
     
