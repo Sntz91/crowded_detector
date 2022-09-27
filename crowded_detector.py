@@ -2,6 +2,7 @@ import requests
 import torch
 import cv2 as cv
 import os
+import json
 
 
 def crowded_detection(input, threshhold, api_url, api_port):
@@ -16,6 +17,7 @@ def crowded_detection(input, threshhold, api_url, api_port):
     model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
     url = 'http://{}:{}/api/WarningIssuer/IssueWarningStatus'.format(api_url,
                                                                      api_port)
+    url = 'https://fivesafe-warning.5hojhh7jd94bq.eu-central-1.cs.amazonlightsail.com/api/WarningIssuer/IssueWarningStatus'
     print('url: ', url)
     crowded=False
     while(input.isOpened()):
@@ -31,7 +33,6 @@ def crowded_detection(input, threshhold, api_url, api_port):
         res_list = results.xyxyn[0].data
         
         # Show Camstream
-        print(results) 
         #res_img = results.imgs[0]
         #res_img = cv.cvtColor(res_img, cv.COLOR_RGB2BGR)
         #cv.imshow("Detection", res_img)
@@ -50,16 +51,17 @@ def crowded_detection(input, threshhold, api_url, api_port):
 
         if previous_crowded != crowded:
             print('state change!')
-            payload = {'crowded': crowded}
-            r = requests.post(url, data=payload)
+            headers = {'accept': '*/*', 'Content-type': 'application/json'}
+            payload = json.dumps(crowded)
+            r = requests.post(url, headers=headers, data=payload)
             print('request done: ', r)
+            #print(r.json())
             
 
         k = cv.waitKey(1)
         if k == 27:
             input.release()
             break
-        print(crowded)
         #return crowded
 
 
@@ -67,7 +69,7 @@ if __name__ == "__main__":
     if os.environ.get('threshold') is not None:
         threshold = int(os.environ['threshold'])
     else:
-        threshold = 1
+        threshold = 2
 
     if os.environ.get('API_URL') and os.environ.get('API_PORT') is not None:
         api_url = os.environ['API_URL']
