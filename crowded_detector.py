@@ -3,6 +3,7 @@ import torch
 import cv2 as cv
 import os
 import json
+import config as cfg
 
 
 def crowded_detection(input, threshhold, api_url, api_port):
@@ -31,12 +32,16 @@ def crowded_detection(input, threshhold, api_url, api_port):
         results = model(frame)
 
         res_list = results.xyxyn[0].data
+        # xmin, ymin, xmax, ymax, confidence, class
+        # TODO Classname instead of name
         
         # Show Camstream
         #res_img = results.imgs[0]
         #res_img = cv.cvtColor(res_img, cv.COLOR_RGB2BGR)
         #cv.imshow("Detection", res_img)
         #cv.waitKey(1)
+
+        print(results.xyxy[0])
         
 
         counter = 0
@@ -49,12 +54,15 @@ def crowded_detection(input, threshhold, api_url, api_port):
         else:
             crowded = False
 
+        #TODO Local Config
+
         if previous_crowded != crowded:
             print('state change!')
-            headers = {'accept': '*/*', 'Content-type': 'application/json'}
-            payload = json.dumps(crowded)
-            r = requests.post(url, headers=headers, data=payload)
-            print('request done: ', r)
+            #headers = {'accept': '*/*', 'Content-type': 'application/json'}
+            #payload = json.dumps(crowded)
+            #payload = json.dumps({"crowded": crowded, "object_list": res_list})
+            #r = requests.post(url, headers=headers, data=payload)
+            #print('request done: ', r)
             #print(r.json())
             
 
@@ -66,17 +74,11 @@ def crowded_detection(input, threshhold, api_url, api_port):
 
 
 if __name__ == "__main__":
-    if os.environ.get('threshold') is not None:
-        threshold = int(os.environ['threshold'])
-    else:
-        threshold = 2
+    threshold = int(os.environ['threshold']) if 'threshold' in os.environ else cfg.THRESHOLD
+    api_url = os.environ['API_URL'] if 'API_URL' in os.environ else cfg.API_URL
+    api_port = os.environ['API_PORT'] if 'API_PORT' in os.environ else cfg.API_PORT
 
-    if os.environ.get('API_URL') and os.environ.get('API_PORT') is not None:
-        api_url = os.environ['API_URL']
-        api_port = os.environ['API_PORT']
-    else:
-        api_url = '127.0.0.1'
-        api_port = '5000'
+    print('starting app with threshold {0} on url {1}:{2}'.format(threshold, api_url, api_port))
 
     crowded_detection(cv.VideoCapture(0), threshold, api_url, api_port)
     
